@@ -4,6 +4,7 @@
 
 var app = self.app;
 var engine = app.engine;
+var audio = engine.audio = {};
 var u = app.util;
 
 // properties

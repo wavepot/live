@@ -6,6 +6,7 @@ var app = self.app = {};
 
 // dependencies
 
+var cfg = app.config = {};
 var util = app.util = {};
 var keys = app.keys = {};
 var editor = app.editor = {};
