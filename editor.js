@@ -12,14 +12,29 @@ var u = app.util;
 
 editor.el = document.getElementById('editor');
 
-// events
+// methods
 
-editor.el.onkeyup = function(e) {
-  engine.compile(this);
+editor.init = function init() {
+  editor.read();
 };
 
-editor.el.onkeydown = function(e) {
-  keys[e.which].call(this, e);
+editor.read = function read() {
+  var content = editor.el.value;
+  if (content != editor.content) {
+    editor.content = content;
+    editor.onchange(editor.content);
+  }
+  return editor.content;
+};
+
+// events
+
+editor.onchange = u.noop;
+
+editor.el.onkeyup = u.debounce(editor.read, 150);
+
+editor.el.onkeydown = function onkeydown(ev) {
+  keys[ev.which].call(this, ev);
 };
 
 })();

@@ -6,6 +6,7 @@ var app = self.app = {};
 
 // dependencies
 
+var debug = app.debug = {};
 var cfg = app.config = {};
 var util = app.util = {};
 var keys = app.keys = {};
@@ -15,7 +16,10 @@ var engine = app.engine = {};
 // methods
 
 app.init = function init() {
-  engine.compile(editor.el);
+  debug.init();
+  engine.init();
+  editor.init();
+  debug.watch(app.engine.audio.stream, 'loopBuffer', 'size');
 };
 
 })();

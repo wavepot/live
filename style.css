@@ -27,3 +27,16 @@ textarea {
   background: transparent;
   border: none;
 }
+
+#debug {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 250px;
+  margin: 0 20px;
+  padding: 15px;
+  font-family: Consolas, monospace;
+  font-size: 10pt;
+  color: #a1f1a1;
+  background: rgba(0,0,0, .3);
+}

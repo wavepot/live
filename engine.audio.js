@@ -11,82 +11,85 @@ var u = app.util;
 
 // properties
 
-audio.playing = false;
-audio.context = new AudioContext;
+audio.isPlaying = false;
+audio.loopBars = cfg.loopBars;
+audio.maxBuffers = cfg.maxBuffers;
 audio.bufferSize = cfg.bufferSize;
-audio.sampleRate = audio.context.sampleRate;
-audio.fourBars = 4 * audio.sampleRate / audio.bufferSize | 0;
-audio.node = audio.context.createScriptProcessor(audio.bufferSize, 2, 2);
-audio.empty = new Float32Array(audio.bufferSize);
-audio.buffer = null;
-audio.floats = { L: null, R: null };
-var out = audio.out = { L: null, R: null };
+audio.silenceBuffer = new Float32Array(audio.bufferSize);
 
 // methods
 
-audio.init = function() {
+audio.init = function init() {
+  audio.context = new AudioContext;
+  audio.sampleRate = audio.context.sampleRate;
+  audio.loopLength = audio.loopBars * audio.sampleRate / audio.bufferSize | 0;
+  audio.node = audio.context.createScriptProcessor(audio.bufferSize, 2, 2);
+  audio.node.onaudioprocess = audio.onaudioprocess;
   audio.node.connect(audio.context.destination);
+  stream.init();
 };
 
-audio.eval = function(code) {
-  // todo: send to worker
+audio.eval = function eval(code) {
+  stream.eval(code);
 };
 
-audio.play = function() {
-  audio.playing = true;
-  audio.onplay();
+audio.start = function start() {
+  audio.isPlaying = true;
+  audio.onstart(audio);
+  audio.play();
 };
 
-audio.stop = function() {
-  audio.playing = false;
-  audio.onstop();
+audio.play = function play() {
+  audio.isPlaying = true;
+  audio.onplay(audio);
 };
 
-audio.pause = function() {
-  if (audio.playing) {
-    audio.playing = false;
-    audio.onpause();
+audio.stop = function stop() {
+  audio.isPlaying = false;
+  audio.onstop(audio);
+};
+
+audio.togglePause = function togglePause() {
+  if (audio.isPlaying) {
+    audio.isPlaying = false;
+    audio.onpause(audio);
   } else {
     audio.play();
   }
 };
 
+audio.restart = function restart() {
+  audio.stop();
+  audio.onrestart(audio);
+  audio.start();
+};
+
 // events
 
+audio.onstart = u.noop;
+audio.onrestart = u.noop;
 audio.onplay = u.noop;
 audio.onstop = u.noop;
 audio.onpause = u.noop;
 
-audio.node.onaudioprocess = function(ev) {
-  out.L = ev.outputBuffer.getChannelData(0);
-  out.R = ev.outputBuffer.getChannelData(1);
-
-  // use empty buffers(silence) when not playing
-  if (!audio.playing) {
-    out.L.set(audio.empty, 0);
-    out.R.set(audio.empty, 0);
+audio.onaudioprocess = u.push(u.pull('outputBuffer'), function onaudioprocess(out) {
+  if (!audio.isPlaying) {
+    /*
+    // these only work in firefox atm, but keep them for reference
+    // theoritically they should perform better
+    out.copyToChannel(audio.silenceBuffer, 0);
+    out.copyToChannel(audio.silenceBuffer, 1);
+    */
+    out.getChannelData(0).set(audio.silenceBuffer, 0);
+    out.getChannelData(1).set(audio.silenceBuffer, 0);
     return;
   }
 
-  audio.buffer = stream.read();
-  if (!audio.buffer) {
-    stream.rewind(audio.fourBars);
-    audio.buffer = stream.read();
-    if (!audio.buffer) return;
-  }
+  audio.buffer = stream.shift();
+  if (!audio.buffer) return;
 
-  if (Array.isArray(audio.buffer)) {
-    // stereo
-    audio.floats.L = new Float32Array(audio.buffer[0]);
-    audio.floats.R = new Float32Array(audio.buffer[1]);
-    out.L.set(audio.floats.L, 0);
-    out.R.set(audio.floats.R, 0);
-  } else {
-    // mono
-    audio.floats.L = new Float32Array(audio.buffer);
-    out.L.set(audio.floats.L, 0);
-    out.R.set(audio.floats.L, 0);
-  }
-};
+  out.getChannelData(0).set(audio.buffer.subarray(0, audio.bufferSize), 0);
+  out.getChannelData(1).set(audio.buffer.subarray(audio.bufferSize, audio.bufferSize * 2), 0);
+});
 
 })();

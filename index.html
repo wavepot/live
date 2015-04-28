@@ -6,14 +6,21 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <textarea id="editor" autofocus spellcheck=false></textarea>
+<textarea id="editor" autofocus spellcheck=false>
+exports.dsp = function(t) {
+  return Math.sin(2 * Math.PI * t * 300) * .04;
+};</textarea>
+    <pre id="debug"></pre>
     <script src="app.js"></script>
-    <script src="cfg.js"></script>
+    <script src="debug.js"></script>
+    <script src="config.js"></script>
     <script src="util.js"></script>
+    <script src="util.loopbuffer.js"></script>
     <script src="keys.js"></script>
     <script src="editor.js"></script>
     <script src="engine.js"></script>
     <script src="engine.audio.js"></script>
-    <script src="index.js"></script>
+    <script src="engine.audio.stream.js"></script>
+    <script src="boot.js"></script>
   </body>
 </html>
