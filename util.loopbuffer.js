@@ -13,61 +13,89 @@ util.LoopBuffer = LoopBuffer;
 
 function LoopBuffer(length) {
   this.length = length;
-  this.clear();
+  this.parts = Array(length);
+  this.index = 0;
+  this.needle = {
+    index: 0,
+    pos: 0
+  };
 }
 
-LoopBuffer.prototype.clear = function clear() {
-  this.elements = Array(this.length);
-  this.current = null;
-  this.first = 0;
-  this.last = 0;
-  this.size = 0;
-  this.hasFilled = false;
+LoopBuffer.prototype.push = function push(buffer) {
+  this.parts[this.index] = buffer;
+  this.index = (this.index + 1) % this.length;
 };
 
-LoopBuffer.prototype.shift = function shift() {
-  if (this.isEmpty()) {
-    if (this.hasFilled) this.loop();
-    else return null;
+LoopBuffer.prototype.read = function read(bytes, ranges) {
+  var part, range;
+
+  if (!ranges) {
+    ranges = [];
+    ranges.bytes = bytes;
   }
 
-  this.current = this.elements[this.first];
-  this.first = ++this.first % this.length;
-  this.size--;
+  part = this.parts[this.needle.index];
 
-  if (!this.hasFilled && this.first === 0) {
-    this.hasFilled = true;
-  }
+  if (!part) return null;
 
-  return this.current;
-};
+  if (part.length - this.needle.pos > bytes) {
+    range = {
+      index: this.needle.index,
+      start: this.needle.pos,
+      end: this.needle.pos += bytes
+    };
 
-LoopBuffer.prototype.push = function push(element) {
-  this.last = (this.first + this.size) % this.length;
+    ranges.push(range);
 
-  this.elements[this.last] = element;
-  
-  if (this.isFull()) {
-    this.first = ++this.first % this.length;
+    bytes = 0;
   } else {
-    this.size++;
+    range = {
+      index: this.needle.index,
+      start: this.needle.pos,
+      end: part.length
+    };
+
+    ranges.push(range);
+
+    bytes -= range.end - range.start;
+
+    this.needle.index = (this.needle.index + 1) % this.length;
+    this.needle.pos = 0;
   }
 
-  return this.size;
+  if (bytes) return this.read(bytes, ranges);
+
+  return this.join(ranges);
 };
 
-LoopBuffer.prototype.loop = function loop() {
-  this.size = this.length;
-  this.first = ++this.first % this.length;
-  this.last = (this.first + this.size) % this.length;
+LoopBuffer.prototype.rewind = function rewind(bytes) {
+  if (this.needle.pos + 1 < bytes) {
+    bytes -= this.needle.pos;
+
+    this.needle.index -= 1;
+
+    if (this.needle.index < 0) this.needle.index = this.length - 1;
+    this.needle.pos = this.parts[this.needle.index].length - 1;
+  } else {
+    this.needle.pos -= bytes - 1;
+    bytes = 0;
+  }
+  if (bytes) return this.rewind(bytes);
 };
 
-LoopBuffer.prototype.isEmpty = function isEmpty() {
-  return this.size === 0;
-};
+LoopBuffer.prototype.join = function join(ranges) {
+  var part, range, pos = 0;
 
-LoopBuffer.prototype.isFull = function isFull() {
-  return this.size === this.length;
+  var buffer = new Float32Array(ranges.bytes);
+
+  for (var i = 0; i < ranges.length; i++) {
+    range = ranges[i];
+    part = this.parts[range.index];
+    buffer.set(part.subarray(range.start, range.end), pos);
+    pos += range.end - range.start;
+  }
+
+  return buffer;
 };
 
 })();
