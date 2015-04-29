@@ -7,8 +7,8 @@ var cfg = app.config;
 
 // properties
 
-cfg.bufferSize = 16384;
-cfg.maxBuffers = 4;
+cfg.bufferSize = 512;
+cfg.maxBuffers = 10;
 cfg.loopBars = 4;
 
 })();

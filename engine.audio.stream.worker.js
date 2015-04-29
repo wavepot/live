@@ -34,7 +34,7 @@ worker.eval = function eval(code) {
 };
 
 worker.bufferAhead = (function() {
-  
+
   // private
 
   var bufferSize;
@@ -67,7 +67,10 @@ worker.bufferAhead = (function() {
     sample = worker.sample;
     frame = worker.frame;
 
-    floats = new Float32Array(stereoBufferSize);
+    floats = [
+      new Float32Array(bufferSize),
+      new Float32Array(bufferSize)
+    ];
 
     for (i = 0; i < bufferSize; i++, frame++) {
       t = frame / sampleRate;
@@ -78,13 +81,16 @@ worker.bufferAhead = (function() {
         worker.onerror(e);
         return;
       }
-      floats[i] = sample[0];
-      floats[i + bufferSize] = sample[1];
+      floats[0][i] = sample[0];
+      floats[1][i] = sample[1];
     }
 
     worker.frame = frame;
     worker.sample = sample;
-    worker.postMessage(floats.buffer, [floats.buffer]);
+    worker.postMessage(
+      [floats[0].buffer, floats[1].buffer],
+      [floats[0].buffer, floats[1].buffer]
+    );
   };
 })();
 

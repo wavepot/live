@@ -18,7 +18,10 @@ stream.isBuffering = false;
 // methods
 
 stream.init = function init() {
-  stream.loopBuffer = new u.LoopBuffer(audio.loopLength);
+  stream.loopBuffer = [
+    new u.LoopBuffer(audio.loopLength),
+    new u.LoopBuffer(audio.loopLength)
+  ];
 };
 
 stream.eval = function eval(code) {
@@ -30,13 +33,17 @@ stream.eval = function eval(code) {
   stream.bufferAhead();
 };
 
-stream.push = function push(buffer) {
-  stream.loopBuffer.push(new Float32Array(buffer));
+stream.write = function write(buffer) {
+  stream.loopBuffer[0].write(new Float32Array(buffer[0]));
+  stream.loopBuffer[1].write(new Float32Array(buffer[1]));
 };
 
-stream.shift = function shift() {
+stream.read = function read(bytes) {
   stream.bufferAhead();
-  return stream.loopBuffer.shift();
+  return [
+    stream.loopBuffer[0].read(bytes),
+    stream.loopBuffer[1].read(bytes)
+  ];
 };
 
 stream.reset = function reset() {
@@ -54,7 +61,7 @@ stream.bufferAhead = function bufferAhead() {
   if (!audio.isPlaying) return;
   if (stream.hasError) return;
   if (stream.isBuffering) return;
-  if (stream.loopBuffer.size >= audio.maxBuffers) return;
+  if (stream.loopBuffer[0].size >= audio.maxBuffers) return;
   stream.isBuffering = true;
   worker.postMessage({
     cmd: 'bufferAhead'
@@ -78,7 +85,7 @@ worker.onmessage = function onmessage(ev) {
   if (ev.data.error) {
     stream.onerror(u.errorFrom(ev.data.error));
   } else {
-    stream.push(ev.data);
+    stream.write(ev.data);
   }
 };
 

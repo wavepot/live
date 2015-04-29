@@ -22,7 +22,10 @@ audio.silenceBuffer = new Float32Array(audio.bufferSize);
 audio.init = function init() {
   audio.context = new AudioContext;
   audio.sampleRate = audio.context.sampleRate;
-  audio.loopLength = audio.loopBars * audio.sampleRate / audio.bufferSize | 0;
+
+  // TODO: should adjust to time signature, presume 120bpm 4/4 or 1s===1bar
+  audio.loopLength = Math.ceil(audio.loopBars * audio.sampleRate / audio.bufferSize);
+
   audio.node = audio.context.createScriptProcessor(audio.bufferSize, 2, 2);
   audio.node.onaudioprocess = audio.onaudioprocess;
   audio.node.connect(audio.context.destination);
@@ -85,11 +88,11 @@ audio.onaudioprocess = u.push(u.pull('outputBuffer'), function onaudioprocess(ou
     return;
   }
 
-  audio.buffer = stream.shift();
+  audio.buffer = stream.read(audio.bufferSize);
   if (!audio.buffer) return;
 
-  out.getChannelData(0).set(audio.buffer.subarray(0, audio.bufferSize), 0);
-  out.getChannelData(1).set(audio.buffer.subarray(audio.bufferSize, audio.bufferSize * 2), 0);
+  out.getChannelData(0).set(audio.buffer[0], 0);
+  out.getChannelData(1).set(audio.buffer[1], 0);
 });
 
 })();
