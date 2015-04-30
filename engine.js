@@ -15,7 +15,7 @@ engine.init = function() {
   audio.start();
   editor.onchange = engine.audio.eval;
   editor.init();
-  setTimeout(engine.audio.stop, 5000);
+  //setTimeout(engine.audio.stop, 5000);
 };
 
 })();

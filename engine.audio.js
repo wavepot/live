@@ -24,7 +24,8 @@ audio.init = function init() {
   audio.sampleRate = audio.context.sampleRate;
 
   // TODO: should adjust to time signature, presume 120bpm 4/4 or 1s===1bar
-  audio.loopLength = Math.ceil(audio.loopBars * audio.sampleRate / audio.bufferSize);
+  audio.loopWidth = Math.round(audio.sampleRate);
+  audio.loopLength = Math.ceil(2 * audio.loopWidth / audio.bufferSize);
 
   audio.node = audio.context.createScriptProcessor(audio.bufferSize, 2, 2);
   audio.node.onaudioprocess = audio.onaudioprocess;

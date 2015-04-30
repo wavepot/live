@@ -19,7 +19,9 @@ app.init = function init() {
   debug.init();
   engine.init();
   editor.init();
-  debug.watch(app.engine.audio.stream, 'loopBuffer', 'size');
+  debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'loopWidth');
+  debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'ahead');
+  debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'total');
 };
 
 })();
