@@ -12,7 +12,7 @@ describe(".push()", function() {
   var buffer;
 
   before(function() {
-    buffer = new LoopBuffer(3, 3);
+    buffer = new LoopBuffer(3, 3, 4);
   })
 
   it("should add a part at index 0", function() {
@@ -48,7 +48,7 @@ describe(".read() in smaller than part chunks", function() {
   var buffer;
 
   before(function() {
-    buffer = new LoopBuffer(3, 3);
+    buffer = new LoopBuffer(3, 3, 4);
     buffer.push(new Float32Array([1,2,3]));
     buffer.push(new Float32Array([4,5,6]));
     buffer.push(new Float32Array([7,8,9]));
@@ -57,57 +57,43 @@ describe(".read() in smaller than part chunks", function() {
   it("should read chunk 1", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(1 === slice[0]);
-    assert(2 === slice[1]);
+    assert('1,2' === join(slice));
   })
 
   it("should read chunk 2", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(3 === slice[0]);
-    assert(4 === slice[1]);
+    assert('3,4' === join(slice));
   })
 
   it("should read chunk 3", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(5 === slice[0]);
-    assert(6 === slice[1]);
+    assert('5,6' === join(slice));
   })
 
   it("should read chunk 4", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(7 === slice[0]);
-    assert(8 === slice[1]);
+    assert('7,8' === join(slice));
   })
 
-  it("should read chunk 5 and loop", function() {
+  it("should read chunk 5 and rewind 2 bars", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(9 === slice[0]);
-    assert(5 === slice[1]);
+    assert('9,4' === join(slice));
   })
 
   it("should read chunk 6", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(6 === slice[0]);
-    assert(7 === slice[1]);
+    assert('5,6' === join(slice));
   })
 
   it("should read chunk 7", function() {
     var slice = buffer.read(2);
     assert(2 === slice.length);
-
-    assert(8 === slice[0]);
-    assert(9 === slice[1]);
+    assert('7,8' === join(slice));
   })
 })
 
@@ -115,7 +101,7 @@ describe(".read() in bigger than part chunks", function() {
   var buffer;
 
   before(function() {
-    buffer = new LoopBuffer(3, 3);
+    buffer = new LoopBuffer(3, 3, 4);
     buffer.push(new Float32Array([1,2,3]));
     buffer.push(new Float32Array([4,5,6]));
     buffer.push(new Float32Array([7,8,9]));
@@ -124,41 +110,25 @@ describe(".read() in bigger than part chunks", function() {
   it("should read chunk 1", function() {
     var slice = buffer.read(4);
     assert(4 === slice.length);
-
-    assert(1 === slice[0]);
-    assert(2 === slice[1]);
-    assert(3 === slice[2]);
-    assert(4 === slice[3]);
+    assert('1,2,3,4' === join(slice));
   })
 
   it("should read chunk 2", function() {
     var slice = buffer.read(4);
     assert(4 === slice.length);
-
-    assert(5 === slice[0]);
-    assert(6 === slice[1]);
-    assert(7 === slice[2]);
-    assert(8 === slice[3]);
+    assert('5,6,7,8' === join(slice));
   })
 
-  it("should read chunk 3 and loop", function() {
+  it("should read chunk 3 and rewind 2 bars", function() {
     var slice = buffer.read(4);
     assert(4 === slice.length);
-
-    assert(9 === slice[0]);
-    assert(5 === slice[1]);
-    assert(6 === slice[2]);
-    assert(7 === slice[3]);
+    assert('9,4,5,6' === join(slice));
   })
 
-  it("should read chunk 4", function() {
+  it("should read chunk 4 and rewind 2 bars", function() {
     var slice = buffer.read(4);
     assert(4 === slice.length);
-
-    assert(8 === slice[0]);
-    assert(9 === slice[1]);
-    assert(5 === slice[2]);
-    assert(6 === slice[3]);
+    assert('7,8,9,4' === join(slice));
   })
 })
 
@@ -166,7 +136,7 @@ describe(".read() in exact part chunks", function() {
   var buffer;
 
   before(function() {
-    buffer = new LoopBuffer(3, 3);
+    buffer = new LoopBuffer(3, 3, 4);
     buffer.push(new Float32Array([1,2,3]));
     buffer.push(new Float32Array([4,5,6]));
     buffer.push(new Float32Array([7,8,9]));
@@ -175,37 +145,55 @@ describe(".read() in exact part chunks", function() {
   it("should read chunk 1", function() {
     var slice = buffer.read(3);
     assert(3 === slice.length);
-
-    assert(1 === slice[0]);
-    assert(2 === slice[1]);
-    assert(3 === slice[2]);
+    assert('1,2,3' === join(slice));
   })
 
   it("should read chunk 2", function() {
     var slice = buffer.read(3);
     assert(3 === slice.length);
-
-    assert(4 === slice[0]);
-    assert(5 === slice[1]);
-    assert(6 === slice[2]);
+    assert('4,5,6' === join(slice));
   })
 
   it("should read chunk 3", function() {
     var slice = buffer.read(3);
     assert(3 === slice.length);
-
-    assert(7 === slice[0]);
-    assert(8 === slice[1]);
-    assert(9 === slice[2]);
+    assert('7,8,9' === join(slice));
   })
 
-  it("should loop and read chunk 4", function() {
+  it("should rewind 2 bars and read chunk 4", function() {
     var slice = buffer.read(3);
     assert(3 === slice.length);
+    assert('4,5,6' === join(slice));
+  })
+})
 
-    assert(5 === slice[0]);
-    assert(6 === slice[1]);
-    assert(7 === slice[2]);
+describe(".read()", function() {
+  it("should return null when empty", function() {
+    var buffer = new LoopBuffer(3, 3, 4);
+    var slice = buffer.read(3);
+    assert(null === slice);
+  })
+
+  it("read up to the point it can", function() {
+    var buffer = new LoopBuffer(3, 4, 4);
+    buffer.push(new Float32Array([1,2,3]));
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+    var slice = buffer.read(2);
+    assert(null === slice);
+    var slice = buffer.read(1);
+    assert('3' === join(slice));
+  })
+
+  it("find the biggest power of 2 loop", function() {
+    var buffer = new LoopBuffer(4, 2, 4);
+    buffer.push(new Float32Array([1,2,3]));
+    buffer.push(new Float32Array([4,5,6]));
+    var slice = buffer.read(14);
+    assert('1,2,3,4,5,6,3,4,5,6,3,4,5,6' === join(slice));
+    buffer.push(new Float32Array([7,8,9]));
+    var slice = buffer.read(14);
+    assert('3,4,5,6,7,8,9,2,3,4,5,6,7,8' === join(slice));
   })
 })
 /*
@@ -255,6 +243,10 @@ describe(".rewind()", function() {
 */
 function assert(expr, msg) {
   if (!expr) throw new Error(msg || 'fail');
+}
+
+function join(floats) {
+  return [].join.call(floats);
 }
 
 })();

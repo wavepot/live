@@ -19,8 +19,8 @@ stream.isBuffering = false;
 
 stream.init = function init() {
   stream.loopBuffer = [
-    new u.LoopBuffer(audio.loopLength, audio.loopWidth),
-    new u.LoopBuffer(audio.loopLength, audio.loopWidth)
+    new u.LoopBuffer(audio.bufferLength, audio.barLength, audio.maxLoopBars),
+    new u.LoopBuffer(audio.bufferLength, audio.barLength, audio.maxLoopBars)
   ];
 };
 
@@ -61,7 +61,9 @@ stream.bufferAhead = function bufferAhead() {
   if (!audio.isPlaying) return;
   if (stream.hasError) return;
   if (stream.isBuffering) return;
-  if (stream.loopBuffer[0].ahead >= audio.loopWidth) return;
+  /* if (stream.loopBuffer[0].ahead >= audio.loopLength * .75 ||
+      stream.loopBuffer[0].ahead <= audio.loopLength * .25 &&
+      stream.total > audio.loopLength ) return; */
   stream.isBuffering = true;
   worker.postMessage({
     cmd: 'bufferAhead'

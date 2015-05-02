@@ -12,9 +12,8 @@ var u = app.util;
 // properties
 
 audio.isPlaying = false;
-audio.loopBars = cfg.loopBars;
-audio.maxBuffers = cfg.maxBuffers;
 audio.bufferSize = cfg.bufferSize;
+audio.maxLoopBars = cfg.maxLoopBars;
 audio.silenceBuffer = new Float32Array(audio.bufferSize);
 
 // methods
@@ -24,8 +23,9 @@ audio.init = function init() {
   audio.sampleRate = audio.context.sampleRate;
 
   // TODO: should adjust to time signature, presume 120bpm 4/4 or 1s===1bar
-  audio.loopWidth = Math.round(audio.sampleRate);
-  audio.loopLength = Math.ceil(2 * audio.loopWidth / audio.bufferSize);
+  audio.barLength = Math.round(audio.sampleRate);
+  audio.loopLength = Math.round(audio.maxLoopBars * audio.barLength);
+  audio.bufferLength = Math.ceil(audio.loopLength / audio.bufferSize);
 
   audio.node = audio.context.createScriptProcessor(audio.bufferSize, 2, 2);
   audio.node.onaudioprocess = audio.onaudioprocess;
