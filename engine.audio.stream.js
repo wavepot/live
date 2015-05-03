@@ -51,7 +51,7 @@ stream.reset = function reset() {
     cmd: 'set',
     param: {
       frame: 0,
-      bufferSize: audio.bufferSize,
+      bufferSize: audio.barLength,
       sampleRate: audio.sampleRate,
     }
   });

@@ -10,7 +10,7 @@
 
 /**
  *
- * @title got some 303
+ * @title icecream
  * @artist stagas
  * @license mit
  *
@@ -18,7 +18,7 @@
 
 var bpm = 120;
 var tuning = 440;
-var transpose = -1;
+var transpose = 5;
 
 // constants
 var tau = 2 * Math.PI;
@@ -26,12 +26,13 @@ var tau = 2 * Math.PI;
 // time coefficients
 var t, tt;
 
-function Oscillator(type, size){
-  if (!(this instanceof Oscillator)) return new Oscillator(type, size);
+function Oscillator(type, size, alias){
+  if (!(this instanceof Oscillator)) return new Oscillator(type, size, alias);
   this.pos = 0;
   this.size = size || sampleRate;
   this.coeff = this.size / sampleRate;
   this.table = new Float32Array(this.size);
+  this.alias = alias === false ? false : true;
   this.build(type);
 }
 
@@ -78,6 +79,7 @@ Oscillator.prototype.play = function(freq){
   this.pos += freq * this.coeff;
   if (this.pos >= this.size) this.pos -= this.size;
   this.index = this.pos | 0;
+  if (!this.alias) return this.table[this.index];
   this.alpha = this.pos - this.index;
   this.next = this.table[this.index == this.size - 1 ? 0 : this.index + 1];
   this.curr = this.table[this.index];
@@ -90,26 +92,44 @@ function clock(_t){
   tt = tau * t;
 }
 
-function clip(x){
-  return x / (1 + Math.abs(x));
+function octave(o){
+  return function(n){
+    return n * o;
+  };
+}
+
+function slide(measure, seq){
+  var pos = (t / measure / 2) % seq.length;
+  var now = pos | 0;
+  var next = now + 1;
+  var alpha = pos - now;
+  if (next == seq.length) next = 0;
+  return seq[now] + ((seq[next] - seq[now]) * Math.pow(alpha, 20));
 }
 
 function sequence(measure, seq){
   return seq[(t / measure / 2 | 0) % seq.length];
 }
 
-function slide(measure, seq, speed){
-  var pos = (t / measure / 2) % seq.length;
-  var now = pos | 0;
-  var next = now + 1;
-  var alpha = pos - now;
-  if (next == seq.length) next = 0;
-  return seq[now] + ((seq[next] - seq[now]) * Math.pow(alpha, speed));
-}
-
 function arp(measure, x, y, z){
   var ts = t / 2 % measure;
   return Math.sin(x * (Math.exp(-ts * y))) * Math.exp(-ts * z);
+}
+
+function sin(freq, phase){
+  return Math.sin((t * freq + (2 - (phase || 0) / 2)) * tau);
+}
+
+function saw(freq){
+  return 1-2 * (t % (1 / freq)) * freq;
+}
+
+function tri(freq){
+  return Math.abs(1 - (2 * t * freq) % 2) * 2 - 1;
+}
+
+function sqr(freq){
+  return sin(freq, t) > 0 ? 1 : -1;
 }
 
 function Noise(){
@@ -122,116 +142,52 @@ function note(n, octave){
   ) / 12) * tuning; // A4 tuning
 }
 
-function octave(o){
-  return function(n){
-    return n * o;
-  };
-}
+// patterns
+var hat_pattern = [
+  0.6, 0.3, 1.2, 0.1,  0.3, 0.1, 1.1, 0.4,
+  0.6, 0.4, 1.1, 0.1,  0.3, 0.2, 1.2, 0.4,
+];
 
-function DiodeFilter(){
-  this.k = 0;
-  this.A = 0;
-  this.z = [0,0,0,0,0];
-  this.ah;
-  this.bh;
-  this.fc;
-  this.set_q(0);
-  this.set_hpf(0.5);
-  this.set_fc(.5);
-}
-
-DiodeFilter.prototype.set_hpf = function(fc){
-  var K = fc * Math.PI;
-  this.ah = (K - 2) / (K + 2);
-  this.bh = 2 / (K + 2);
-};
-
-DiodeFilter.prototype.reset = function(){
-  if (this.k < 17) this.z = [0,0,0,0,0];
-};
-
-DiodeFilter.prototype.set_q = function(q){
-  this.k = 20 * q;
-  this.A = 1 + 0.5 * this.k;
-};
-
-DiodeFilter.prototype.set_fc = function(cutoff){
-  cutoff = (cutoff * cutoff);
-  this.fc = cutoff <= 0
-    ? .02
-    : (cutoff >= 1.0 ? .999 : cutoff);
-};
-
-DiodeFilter.prototype.run = function(x){
-  var a = Math.PI * this.fc;
-  a = 2 * Math.tan(0.5*a); // dewarping, not required with 2x oversampling
-  var ainv = 1 / a;
-  var a2 = a*a;
-  var b = 2*a + 1;
-  var b2 = b*b;
-  var c = 1 / (2*a2*a2 - 4*a2*b2 + b2*b2);
-  var g0 = 2*a2*a2*c;
-  var g = g0 * this.bh;
-
-  // current state
-  var s0 = (a2*a*this.z[0] + a2*b*this.z[1] + this.z[2]*(b2 - 2*a2)*a + this.z[3]*(b2 - 3*a2)*b) * c;
-  var s = this.bh*s0 - this.z[4];
-
-  // solve feedback loop (linear)
-  var y5 = (g*x + s) / (1 + g*this.k);
-
-  // input clipping
-  var y0 = clip(x - this.k*y5);
-  y5 = g*y0 + s;
-
-  // compute integrator outputs
-  var y4 = g0*y0 + s0;
-  var y3 = (b*y4 - this.z[3]) * ainv;
-  var y2 = (b*y3 - a*y4 - this.z[2]) * ainv;
-  var y1 = (b*y2 - a*y3 - this.z[1]) * ainv;
-
-  // update filter state
-  this.z[0] += 4*a*(y0 - y1 + y2);
-  this.z[1] += 2*a*(y1 - 2*y2 + y3);
-  this.z[2] += 2*a*(y2 - 2*y3 + y4);
-  this.z[3] += 2*a*(y3 - 2*y4);
-  this.z[4] = this.bh*y4 + this.ah*y5;
-
-  return this.A*y4;
-};
-
-var osc = Oscillator('saw', 1024);
-var lfo = Oscillator('sin', 512);
-var lfo2 = Oscillator('sin', 512);
-
-var melody = [5, 25, 5, 25, 4, 16, 13, 4 ].map(function(n){
+var melody = [4, 7, 12, 15].map(function(n){
   return note(n, 0);
 });
 
-var filter = new DiodeFilter();
+melody = melody.concat(melody.map(octave(3)));
+melody = melody.concat(melody.slice().reverse());
 
-filter.set_q(0.66);
-filter.set_hpf(.0007);
+var progression = [1, 2];
+
+var mprogression = [16, 32];
+
+var hat_note = note(1, 0);
+
+var osc = Oscillator('tri', 512);
+var hat_osc = Oscillator('ramp', 512);
 
 exports.dsp = function dsp(t){
+  // return 0;
+  // for (var i = 8000; i--;) {}
+
   clock(t);
 
-  filter.set_fc(0.001 + ((lfo.play(2.66) * 0.16 + 1) / 2) * (0.258 + lfo2.play(.02) * 0.12)) ;
+  var noise = Noise();
 
-  var n = slide(1/16, melody, 12);
+  var p = sequence(1/128, progression);
+  var m = sequence(1/2, mprogression);
+  var n = slide(1/m, melody) * p;
 
-  var synth_osc = osc.play(n);
-  var synth = arp(1/16, synth_osc, 12, 7);
+  var synth_osc = osc.play(n/2);
+  var synth = arp(1/8, synth_osc, 32, 4);
 
-  synth = filter.run(synth * 0.5);
-  synth = clip(synth * 12);
+  var kick = arp(1/4, 60, 60, 100);
 
-  var kick = arp(1/4, 48, 50, 8);
+  var hat = sequence(1/16, hat_pattern)
+    * arp(1/16, hat_osc.play(hat_note) + noise * 1.4, 18, 70);
 
-  // mixer
   return 0.7 * (
-    0.6 * synth
+    0.9 * synth
   + kick
+  + 0.12 * hat
   );
 }
 </textarea>

@@ -30,10 +30,17 @@ describe(".write()", function() {
     var part = new Float32Array([1,2,3]);
     buffer.write(part);
     assert('1,2,3,0' === join(buffer.spare));
+
     var part = new Float32Array([4,5,6]);
     buffer.write(part);
     assert('1,2,3,4' === join(buffer.bars[0]));
     assert('5,6,0,0' === join(buffer.spare));
+
+    var part = new Float32Array([7,8,9]);
+    buffer.write(part);
+    assert('1,2,3,4' === join(buffer.bars[0]));
+    assert('5,6,7,8' === join(buffer.bars[1]));
+    assert('9,0,0,0' === join(buffer.spare));
   })
 
   it("should loop when full", function() {
@@ -97,7 +104,7 @@ describe(".read()", function() {
     assert(1 === buffer.ahead);
     var slice = buffer.read(3);
     assert('4,1,2' === join(slice));
-    assert(1 === buffer.ahead);
+    assert(0 === buffer.ahead);
     var part = new Float32Array([7,8,9,10,11,12]);
     buffer.write(part);
     assert(2 === buffer.ahead);
@@ -106,7 +113,7 @@ describe(".read()", function() {
     assert(1 === buffer.ahead);
     var slice = buffer.read(7);
     assert('6,7,8,9,10,11,12' === join(slice));
-    assert(1 === buffer.ahead);
+    assert(0 === buffer.ahead);
   })
 })
 
@@ -225,6 +232,43 @@ describe("case #2", function() {
     assert('10,11' === join(slice));
     var slice = buffer.read(2);
     assert('12,4' === join(slice));
+  })
+})
+
+describe("case #3", function() {
+  var buffer;
+
+  beforeEach(function() {
+    buffer = new LoopBuffer(5, 2);
+  })
+
+  it("should work as expected", function() {
+    var part = new Float32Array([1,2]);
+    buffer.write(part);
+    var part = new Float32Array([3,4]);
+    buffer.write(part);
+    var part = new Float32Array([5,6]);
+    buffer.write(part);
+    var slice = buffer.read(3);
+    assert('1,2,3' === join(slice));
+    var slice = buffer.read(3);
+    assert('4,5,1' === join(slice));
+    var slice = buffer.read(3);
+    assert('2,3,4' === join(slice));
+    var slice = buffer.read(3);
+    assert('5,1,2' === join(slice));
+    var part = new Float32Array([7,8]);
+    buffer.write(part);
+    var part = new Float32Array([9,10]);
+    buffer.write(part);
+    var part = new Float32Array([11,12]);
+    buffer.write(part);
+    var slice = buffer.read(3);
+    assert('3,4,5' === join(slice));
+    var slice = buffer.read(3);
+    assert('6,7,8' === join(slice));
+    var slice = buffer.read(3);
+    assert('9,10,1' === join(slice));
   })
 })
 
