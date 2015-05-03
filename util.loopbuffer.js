@@ -15,7 +15,6 @@ function LoopBuffer(length, barLength, maxLoopBars) {
   this.length = length;
   this.parts = Array(length);
   this.index = 0;
-  this.end = 0;
   this.ahead = 0;
   this.total = 0;
   this.pushed = 0;
@@ -25,8 +24,11 @@ function LoopBuffer(length, barLength, maxLoopBars) {
 }
 
 LoopBuffer.prototype.push = function push(buffer) {
+  if (this.parts[this.index]) {
+    this.total -= this.parts[this.index].length;
+  }
   this.parts[this.index] = buffer;
-  this.end = this.index = (this.index + 1) % this.length;
+  this.index = (this.index + 1) % this.length;
   this.ahead += buffer.length;
   this.total += buffer.length;
   this.total = Math.min(this.total, this.barLength * this.maxLoopBars);
@@ -34,7 +36,10 @@ LoopBuffer.prototype.push = function push(buffer) {
 };
 
 LoopBuffer.prototype.read = function read(bytes, ranges) {
-  if (this.ahead < bytes && !this.canLoop()) return null;
+  if (!this.canLoop()) {
+    if (this.ahead < bytes) return null;
+    if (this.ahead < this.barLength) return null;
+  }
 
   var part, range;
 
@@ -69,7 +74,7 @@ LoopBuffer.prototype.read = function read(bytes, ranges) {
     this.needle.index = (this.needle.index + 1) % this.length;
     this.needle.pos = 0;
 
-    if (this.needle.index === this.end) {
+    if (this.needle.index === this.index) {
       if (bytes && !this.canLoop()) return null;
       this.loop();
     }
@@ -77,7 +82,7 @@ LoopBuffer.prototype.read = function read(bytes, ranges) {
 
   ranges.push(range);
   this.ahead -= range.length;
-  this.ahead = Math.max(0, this.ahead);
+  //this.ahead = Math.max(0, this.ahead);
 
   if (bytes) {
     return this.read(bytes, ranges);
@@ -88,10 +93,10 @@ LoopBuffer.prototype.read = function read(bytes, ranges) {
 
 
 LoopBuffer.prototype.loop = function() {
-  this.end = this.needle.index;
+  //this.index = this.needle.index;
   var x = Math.round(this.total / this.barLength);
   while ((x & (x - 1)) != 0) x--;
-  return this.rewind(Math.round(x * this.barLength));
+  return this.rewind(Math.round(x * this.barLength + 1));
 };
 
 LoopBuffer.prototype.canLoop = function() {
@@ -99,14 +104,13 @@ LoopBuffer.prototype.canLoop = function() {
 };
 
 LoopBuffer.prototype.rewind = function rewind(bytes) {
-  /*if (this.needle.pos === 0) {
-    this.moveNeedleBack();
-  } else */
   if (this.needle.pos + 1 < bytes) {
     bytes -= this.needle.pos + 1;
+    this.ahead += this.needle.pos + 1;
     this.moveNeedleBack();
   } else {
     this.needle.pos -= bytes - 1;
+    this.ahead += bytes;
     bytes = 0;
   }
   if (bytes) return this.rewind(bytes);

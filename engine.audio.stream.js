@@ -61,9 +61,9 @@ stream.bufferAhead = function bufferAhead() {
   if (!audio.isPlaying) return;
   if (stream.hasError) return;
   if (stream.isBuffering) return;
-  /* if (stream.loopBuffer[0].ahead >= audio.loopLength * .75 ||
-      stream.loopBuffer[0].ahead <= audio.loopLength * .25 &&
-      stream.total > audio.loopLength ) return; */
+  if ((stream.loopBuffer[0].ahead >= audio.loopLength * .75
+    )
+    && stream.loopBuffer[0].total >= audio.loopLength) return;
   stream.isBuffering = true;
   worker.postMessage({
     cmd: 'bufferAhead'

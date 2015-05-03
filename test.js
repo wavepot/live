@@ -3,6 +3,7 @@
 // test container
 
 var test = self;
+test.test = test;
 
 // properties
 
@@ -10,6 +11,9 @@ test.el = document.getElementById('test');
 test.bootTimeout = null;
 test.groups = [];
 test.group = null;
+test.options = {
+  bail: false
+};
 test.results = {
   total: 0,
   passed: 0,
@@ -23,8 +27,12 @@ test.print = function print(msg) {
 };
 
 test.boot = function boot() {
-  test.groups.forEach(function(group) {
+  for (var x = 0; x < test.groups.length; x++) {
+    var fail = false;
+    var group = test.groups[x];
+
     test.print(group.msg + ':\n');
+
     try {
       group.before();
     } catch(e) {
@@ -32,9 +40,12 @@ test.boot = function boot() {
       test.print(e.message + '\n' + e.stack + '\n');
       test.results.total += group.cases.length;
       test.results.failed += group.cases.length;
-      return;
+      fail = true;
+      if (test.options.bail) break;
     }
-    group.cases.forEach(function(c) {
+
+    for (var y = 0; y < group.cases.length; y++) {
+      var c = group.cases[y];
       test.print('  ' + c.msg + ' -- ');
       test.results.total++;
       try {
@@ -47,17 +58,24 @@ test.boot = function boot() {
         test.print('!FAIL!\n');
         test.print(e.message + '\n' + e.stack + '\n');
         test.results.failed++;
+        fail = true;
+        if (test.options.bail) break;
       }
-    });
+    }
+
+    if (fail && test.options.bail) break;
+
     try {
       group.after();
     } catch(e) {
       test.print('!FAIL!\n');
       test.print(e.message + '\n' + e.stack + '\n');
-      return;
+      fail = true;
+      if (test.options.bail) break;
     }
+
     test.print('\n');
-  });
+  }
   test.print(test.results.total + ' tests complete\n');
   test.print(test.results.passed + ' passed\n');
   test.print(test.results.failed + ' failed\n');

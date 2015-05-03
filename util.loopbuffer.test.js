@@ -2,9 +2,14 @@
 
 // dependencies
 
+var test = self.test;
 var app = self.app;
 var util = app.util;
 var LoopBuffer = util.LoopBuffer;
+
+// options
+
+test.options.bail = true;
 
 // specs
 
@@ -41,6 +46,22 @@ describe(".push()", function() {
     buffer.push(part);
     assert(part === buffer.parts[0]);
     assert(1 === buffer.index);
+  })
+})
+
+describe(".read()", function() {
+  it("should start reading when a bar is complete", function() {
+    var buffer = new LoopBuffer(3, 3, 4);
+    buffer.push(new Float32Array([1,2]));
+    var slice = buffer.read(2);
+    assert(null === slice);
+    buffer.push(new Float32Array([3]));
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+    var slice = buffer.read(2);
+    assert('3,1' === join(slice));
+    var slice = buffer.read(6);
+    assert('2,3,1,2,3,1' === join(slice));
   })
 })
 
@@ -167,25 +188,14 @@ describe(".read() in exact part chunks", function() {
   })
 })
 
-describe(".read()", function() {
+describe("edge cases", function() {
   it("should return null when empty", function() {
     var buffer = new LoopBuffer(3, 3, 4);
     var slice = buffer.read(3);
     assert(null === slice);
   })
 
-  it("read up to the point it can", function() {
-    var buffer = new LoopBuffer(3, 4, 4);
-    buffer.push(new Float32Array([1,2,3]));
-    var slice = buffer.read(2);
-    assert('1,2' === join(slice));
-    var slice = buffer.read(2);
-    assert(null === slice);
-    var slice = buffer.read(1);
-    assert('3' === join(slice));
-  })
-
-  it("find the biggest power of 2 loop", function() {
+  it("should find the biggest power of 2 loop", function() {
     var buffer = new LoopBuffer(4, 2, 4);
     buffer.push(new Float32Array([1,2,3]));
     buffer.push(new Float32Array([4,5,6]));
@@ -195,7 +205,50 @@ describe(".read()", function() {
     var slice = buffer.read(14);
     assert('3,4,5,6,7,8,9,2,3,4,5,6,7,8' === join(slice));
   })
+
+  it("should push at the right position when in loop and loop properly", function() {
+    var buffer = new LoopBuffer(3, 3, 4);
+    buffer.push(new Float32Array([1,2,3]));
+    buffer.push(new Float32Array([4,5,6]));
+    buffer.push(new Float32Array([7,8,9]));
+    var slice = buffer.read(12);
+    assert('1,2,3,4,5,6,7,8,9,4,5,6' === join(slice));
+    buffer.push(new Float32Array([10,11,12]));
+    var slice = buffer.read(6);
+    assert('7,8,9,10,11,12' === join(slice));
+    var slice = buffer.read(6);
+    assert('7,8,9,10,11,12' === join(slice));
+    var slice = buffer.read(3);
+    assert('7,8,9' === join(slice));
+    buffer.push(new Float32Array([13,14,15]));
+    var slice = buffer.read(6);
+    assert('10,11,12,13,14,15' === join(slice));
+    var slice = buffer.read(6);
+    assert('10,11,12,13,14,15' === join(slice));
+    buffer.push(new Float32Array([16,17,18]));
+    var slice = buffer.read(6);
+    assert('10,11,12,13,14,15' === join(slice));
+    var slice = buffer.read(6);
+    assert('16,17,18,13,14,15' === join(slice));
+  })
+
+  it("should push at the right position at smaller chunks when in loop and loop properly", function() {
+    var buffer = new LoopBuffer(4, 5, 4);
+    buffer.push(new Float32Array([1,2,3]));
+    buffer.push(new Float32Array([4,5,6]));
+    buffer.push(new Float32Array([7,8,9]));
+    buffer.push(new Float32Array([10,11,12]));
+    var slice = buffer.read(15);
+    assert('1,2,3,4,5,6,7,8,9,10,11,12,3,4,5' === join(slice));
+    var slice = buffer.read(8);
+    assert('6,7,8,9,10,11,12,3' === join(slice));
+    buffer.push(new Float32Array([13,14,15]));
+    buffer.push(new Float32Array([16,17,18]));
+    var slice = buffer.read(8);
+    assert('4,5,6,7,8,9,10,11' === join(slice));
+  })
 })
+
 /*
 describe(".rewind()", function() {
   var buffer;
