@@ -11,133 +11,98 @@ util.LoopBuffer = LoopBuffer;
 
 // class
 
-function LoopBuffer(length, barLength, maxLoopBars) {
-  this.length = length;
-  this.parts = Array(length);
-  this.index = 0;
-  this.ahead = 0;
-  this.total = 0;
-  this.pushed = 0;
-  this.needle = { index: 0, pos: 0 };
+function LoopBuffer(barLength, maxLoopBars) {
+  this.bars = map(Array(maxLoopBars), function(){ return new Float32Array(barLength) });
+  this.spare = new Float32Array(barLength);
+
   this.barLength = barLength;
   this.maxLoopBars = maxLoopBars;
+
+  this.index = 0;
+  this.pos = 0;
+  this.remain = this.barLength;
+
+  this.ahead = 0;
+  this.total = 0;
+
+  this.needle = { index: 0, pos: 0, remain: this.barLength };
 }
 
-LoopBuffer.prototype.push = function push(buffer) {
-  if (this.parts[this.index]) {
-    this.total -= this.parts[this.index].length;
+LoopBuffer.prototype.write = function(buffer) {
+  var length = buffer.length;
+  if (length >= this.remain) {
+    this.spare.set(buffer.subarray(0, this.remain), this.pos);
+    var rest = buffer.subarray(this.remain);
+
+    // swap
+    var temp = this.bars[this.index];
+    this.bars[this.index] = this.spare;
+    this.spare = temp;
+
+    this.index = (this.index + 1) % this.maxLoopBars;
+    this.pos = 0;
+    this.remain = this.barLength;
+
+    this.ahead++;
+    this.total++;
+
+    this.ahead = Math.min(this.ahead, this.maxLoopBars);
+    this.total = Math.min(this.total, this.maxLoopBars);
+
+    return this.write(rest);
+  } else {
+    this.spare.set(buffer, this.pos);
+    this.pos += length;
+    this.remain -= length;
   }
-  this.parts[this.index] = buffer;
-  this.index = (this.index + 1) % this.length;
-  this.ahead += buffer.length;
-  this.total += buffer.length;
-  this.total = Math.min(this.total, this.barLength * this.maxLoopBars);
-  this.pushed++;
 };
 
-LoopBuffer.prototype.read = function read(bytes, ranges) {
-  if (!this.canLoop()) {
-    if (this.ahead < bytes) return null;
-    if (this.ahead < this.barLength) return null;
+LoopBuffer.prototype.read = function(bytes, buffers) {
+  if (!this.total) return null;
+
+  if (!buffers) {
+    buffers = [];
+    buffers.bytes = bytes;
   }
 
-  var part, range;
+  if (bytes >= this.needle.remain) {
+    bytes -= this.needle.remain;
+    buffers.push(this.bars[this.needle.index].subarray(this.needle.pos));
 
-  if (!ranges) {
-    ranges = [];
-    ranges.bytes = bytes;
-  }
-
-  part = this.parts[this.needle.index];
-
-  if (!part) return null;
-
-  if (part.length - this.needle.pos > bytes) {
-    range = {
-      index: this.needle.index,
-      start: this.needle.pos,
-      end: this.needle.pos += bytes,
-      length: bytes
-    };
-    bytes -= range.length;
-  } else {
-    range = {
-      index: this.needle.index,
-      start: this.needle.pos,
-      end: part.length,
-      length: 0
-    };
-
-    range.length = range.end - range.start;
-    bytes -= range.length;
-
-    this.needle.index = (this.needle.index + 1) % this.length;
-    this.needle.pos = 0;
-
-    if (this.needle.index === this.index) {
-      if (bytes && !this.canLoop()) return null;
-      this.loop();
+    if (++this.needle.index > Math.min(this.total, this.maxLoopBars) - 1) {
+      //this.ahead = Math.min(this.total, this.maxLoopBars) - 1;
+      this.needle.index = 0;
     }
-  }
 
-  ranges.push(range);
-  this.ahead -= range.length;
-  //this.ahead = Math.max(0, this.ahead);
-
-  if (bytes) {
-    return this.read(bytes, ranges);
-  }
-
-  return this.join(ranges);
-};
+    this.ahead = Math.max(this.ahead - 1, 0);
 
 
-LoopBuffer.prototype.loop = function() {
-  //this.index = this.needle.index;
-  var x = Math.round(this.total / this.barLength);
-  while ((x & (x - 1)) != 0) x--;
-  return this.rewind(Math.round(x * this.barLength + 1));
-};
+    this.needle.pos = 0;
+    this.needle.remain = this.barLength;
 
-LoopBuffer.prototype.canLoop = function() {
-  return this.total >= this.barLength;
-};
-
-LoopBuffer.prototype.rewind = function rewind(bytes) {
-  if (this.needle.pos + 1 < bytes) {
-    bytes -= this.needle.pos + 1;
-    this.ahead += this.needle.pos + 1;
-    this.moveNeedleBack();
+    return this.read(bytes, buffers);
   } else {
-    this.needle.pos -= bytes - 1;
-    this.ahead += bytes;
-    bytes = 0;
+    buffers.push(this.bars[this.needle.index].subarray(this.needle.pos, this.needle.pos += bytes));
+    this.needle.remain -= bytes;
   }
-  if (bytes) return this.rewind(bytes);
-  else return true;
-};
 
-LoopBuffer.prototype.moveNeedleBack = function() {
-  this.needle.index -= 1;
-  if (this.needle.index < 0) {
-    this.needle.index = Math.min(this.pushed, this.length) - 1;
-  }
-  this.needle.pos = this.parts[this.needle.index].length - 1;
-};
-
-LoopBuffer.prototype.join = function join(ranges) {
-  var part, range, pos = 0;
-
-  var buffer = new Float32Array(ranges.bytes);
-
-  for (var i = 0; i < ranges.length; i++) {
-    range = ranges[i];
-    part = this.parts[range.index];
-    buffer.set(part.subarray(range.start, range.end), pos);
-    pos += range.end - range.start;
+  var pos = 0;
+  var buffer = new Float32Array(buffers.bytes);
+  for (var i = 0; i < buffers.length; i++) {
+    buffer.set(buffers[i], pos);
+    pos += buffers[i].length;
   }
 
   return buffer;
 };
+
+// utils
+
+function map(array, fn) {
+  for (var i = 0; i < array.length; i++) {
+    array[i] = fn(array[i]);
+  }
+  return array;
+}
 
 })();

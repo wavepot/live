@@ -13,6 +13,222 @@ test.options.bail = true;
 
 // specs
 
+describe(".write()", function() {
+  var buffer;
+
+  beforeEach(function() {
+    buffer = new LoopBuffer(4, 2);
+  })
+
+  it("should write in spare", function() {
+    var part = new Float32Array([1,2,3]);
+    buffer.write(part);
+    assert('1,2,3,0' === join(buffer.spare));
+  })
+
+  it("should swap spare with bar", function() {
+    var part = new Float32Array([1,2,3]);
+    buffer.write(part);
+    assert('1,2,3,0' === join(buffer.spare));
+    var part = new Float32Array([4,5,6]);
+    buffer.write(part);
+    assert('1,2,3,4' === join(buffer.bars[0]));
+    assert('5,6,0,0' === join(buffer.spare));
+  })
+
+  it("should loop when full", function() {
+    var part = new Float32Array([1,2,3,4,5,6,7,8,9,10]);
+    buffer.write(part);
+    assert('1,2,3,4' === join(buffer.bars[0]));
+    assert('5,6,7,8' === join(buffer.bars[1]));
+    var part = new Float32Array([11,12,13,14]);
+    buffer.write(part);
+    assert('9,10,11,12' === join(buffer.bars[0]));
+    assert('5,6,7,8' === join(buffer.bars[1]));
+    var part = new Float32Array([15,16,17,18]);
+    buffer.write(part);
+    assert('9,10,11,12' === join(buffer.bars[0]));
+    assert('13,14,15,16' === join(buffer.bars[1]));
+  })
+})
+
+describe(".read()", function() {
+  var buffer;
+
+  beforeEach(function() {
+    buffer = new LoopBuffer(4, 2);
+  })
+
+  it("should return null when empty", function() {
+    var slice = buffer.read(2);
+    assert(null === slice);
+  })
+
+  it("should return null when no full bar", function() {
+    var part = new Float32Array([1,2,3]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert(null === slice);
+  })
+
+  it("should return slice when at least a full bar", function() {
+    var part = new Float32Array([1,2,3,4,5,6]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+    var slice = buffer.read(2);
+    assert('3,4' === join(slice));
+  })
+
+  it("should loop when not all bars full", function() {
+    var part = new Float32Array([1,2,3,4,5,6]);
+    buffer.write(part);
+    var slice = buffer.read(3);
+    assert('1,2,3' === join(slice));
+    var slice = buffer.read(3);
+    assert('4,1,2' === join(slice));
+  })
+
+  it("should properly report ahead", function() {
+    var part = new Float32Array([1,2,3,4,5,6]);
+    buffer.write(part);
+    var slice = buffer.read(3);
+    assert('1,2,3' === join(slice));
+    assert(1 === buffer.ahead);
+    var slice = buffer.read(3);
+    assert('4,1,2' === join(slice));
+    assert(1 === buffer.ahead);
+    var part = new Float32Array([7,8,9,10,11,12]);
+    buffer.write(part);
+    assert(2 === buffer.ahead);
+    var slice = buffer.read(3);
+    assert('11,12,5' === join(slice));
+    assert(1 === buffer.ahead);
+    var slice = buffer.read(7);
+    assert('6,7,8,9,10,11,12' === join(slice));
+    assert(1 === buffer.ahead);
+  })
+})
+
+describe("case #1", function() {
+  var buffer;
+
+  beforeEach(function() {
+    buffer = new LoopBuffer(4, 4);
+  })
+
+  it("should work as expected", function() {
+    var part = new Float32Array([1,2]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert(null === slice);
+
+    var part = new Float32Array([3,4]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+
+    var part = new Float32Array([5,6,7,8,9,10]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert('3,4' === join(slice));
+    var slice = buffer.read(2);
+    assert('5,6' === join(slice));
+    var slice = buffer.read(2);
+    assert('7,8' === join(slice));
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+
+    var part = new Float32Array([11,12]);
+    buffer.write(part);
+
+    var slice = buffer.read(10);
+    assert('3,4,5,6,7,8,9,10,11,12' === join(slice));
+
+    var slice = buffer.read(10);
+    assert('1,2,3,4,5,6,7,8,9,10' === join(slice));
+
+    var part = new Float32Array([13,14,15,16,17,18]);
+    buffer.write(part);
+
+    var slice = buffer.read(10);
+    assert('11,12,13,14,15,16,1,2,3,4' === join(slice));
+
+    var part = new Float32Array([19,20,21,22]);
+    buffer.write(part);
+
+    var slice = buffer.read(10);
+    assert('5,6,7,8,9,10,11,12,13,14' === join(slice));
+    var part = new Float32Array([23]);
+    buffer.write(part);
+    var part = new Float32Array([24]);
+    buffer.write(part);
+    var part = new Float32Array([25]);
+    buffer.write(part);
+    var part = new Float32Array([26]);
+    buffer.write(part);
+
+    var slice = buffer.read(10);
+    assert('15,16,17,18,19,20,21,22,23,24' === join(slice));
+
+    var part = new Float32Array([27,28,29]);
+    buffer.write(part);
+
+    var slice = buffer.read(3);
+    assert('25,26,27' === join(slice));
+
+    var slice = buffer.read(3);
+    assert('28,13,14' === join(slice));
+  })
+})
+
+describe("case #2", function() {
+  var buffer;
+
+  beforeEach(function() {
+    buffer = new LoopBuffer(3, 3);
+  })
+
+  it("should work as expected", function() {
+    var part = new Float32Array([1,2]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert(null === slice);
+
+    var part = new Float32Array([3,4]);
+    buffer.write(part);
+    var slice = buffer.read(2);
+    assert('1,2' === join(slice));
+    var slice = buffer.read(2);
+    assert('3,1' === join(slice));
+
+    var part = new Float32Array([5,6]);
+    buffer.write(part);
+    var part = new Float32Array([7,8]);
+    buffer.write(part);
+    var part = new Float32Array([9,10]);
+    buffer.write(part);
+
+    var slice = buffer.read(2);
+    assert('2,3' === join(slice));
+
+    var part = new Float32Array([11,12]);
+    buffer.write(part);
+
+    var slice = buffer.read(2);
+    assert('4,5' === join(slice));
+    var slice = buffer.read(2);
+    assert('6,7' === join(slice));
+    var slice = buffer.read(2);
+    assert('8,9' === join(slice));
+    var slice = buffer.read(2);
+    assert('10,11' === join(slice));
+    var slice = buffer.read(2);
+    assert('12,4' === join(slice));
+  })
+})
+
+/*
 describe(".push()", function() {
   var buffer;
 
@@ -248,7 +464,7 @@ describe("edge cases", function() {
     assert('4,5,6,7,8,9,10,11' === join(slice));
   })
 })
-
+*/
 /*
 describe(".rewind()", function() {
   var buffer;

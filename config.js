@@ -7,7 +7,7 @@ var cfg = app.config;
 
 // properties
 
-cfg.bufferSize = 256;
-cfg.maxLoopBars = 1;
+cfg.bufferSize = 2048;
+cfg.maxLoopBars = 4;
 
 })();
