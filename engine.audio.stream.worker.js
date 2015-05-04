@@ -38,7 +38,6 @@ worker.bufferAhead = (function() {
   // private
 
   var bufferSize;
-  var stereoBufferSize;
   var sampleRate;
   var floats;
   var sample;
@@ -47,10 +46,11 @@ worker.bufferAhead = (function() {
   var fn;
   var t;
   var i;
+  var x;
 
   // export
 
-  return function bufferAhead() {
+  return function bufferAhead(buffers) {
     if (worker.fn) {
       fn = worker.fn;
       worker.fn = null;
@@ -62,36 +62,50 @@ worker.bufferAhead = (function() {
     }
 
     bufferSize = worker.bufferSize;
-    stereoBufferSize = bufferSize * 2;
     sampleRate = worker.sampleRate;
     sample = worker.sample;
     frame = worker.frame;
 
-    floats = [
-      new Float32Array(bufferSize),
-      new Float32Array(bufferSize)
-    ];
+    for (x = 0; x < buffers[0].length; x++) {
+      floats = [
+        new Float32Array(buffers[0][x]),
+        new Float32Array(buffers[1][x])
+      ];
 
-    for (i = 0; i < bufferSize; i++, frame++) {
-      t = frame / sampleRate;
-      sample = fn(t, frame);
-      err = u.stereoOr(sample, u.isNumber);
+      err = fill(floats);
       if (err) {
         worker.fn = fn = null;
         worker.onerror(e);
         return;
       }
-      floats[0][i] = sample[0];
-      floats[1][i] = sample[1];
+
+      buffers[0][x] = floats[0].buffer;
+      buffers[1][x] = floats[1].buffer;
     }
+
+    floats = null;
 
     worker.frame = frame;
     worker.sample = sample;
+
     worker.postMessage(
-      [floats[0].buffer, floats[1].buffer],
-      [floats[0].buffer, floats[1].buffer]
+      buffers,
+      buffers[0].concat(buffers[1])
     );
+
+    buffers = null;
   };
+
+  function fill(floats) {
+    for (i = 0; i < bufferSize; i++, frame++) {
+      t = frame / sampleRate;
+      sample = fn(t, frame);
+      err = u.stereoOr(sample, u.isNumber);
+      if (err) return err;
+      floats[0][i] = sample[0];
+      floats[1][i] = sample[1];
+    }
+  }
 })();
 
 // events

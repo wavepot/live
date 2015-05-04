@@ -12,7 +12,7 @@ var LoopBuffer = util.LoopBuffer;
 test.options.bail = true;
 
 // specs
-
+/*
 describe(".write()", function() {
   var buffer;
 
@@ -271,7 +271,7 @@ describe("case #3", function() {
     assert('9,10,1' === join(slice));
   })
 })
-
+*/
 /*
 describe(".push()", function() {
   var buffer;

@@ -15,6 +15,17 @@ u.extend = function extend(dest, src) {
   for (var key in src) dest[key] = src[key];
 };
 
+u.log = function log(arg) {
+  console.log(arg);
+};
+
+u.map = function map(array, fn) {
+  for (var i = 0; i < array.length; i++) {
+    array[i] = fn(array[i]);
+  }
+  return array;
+};
+
 u.push = function push(a, b) {
   return function(arg) {
     b(a(arg));
@@ -27,8 +38,12 @@ u.pull = function pull(key) {
   };
 };
 
-u.log = function log(arg) {
-  console.log(arg);
+u.toArrayBuffer = u.pull('buffer');
+
+u.toFloat32Array = function toFloat32Array(bufferSize) {
+  return function(buffer) {
+    return new Float32Array(buffer || bufferSize);
+  };
 };
 
 u.stereo = function stereo(sample) {
@@ -79,6 +94,12 @@ u.errorFrom = function errorFrom(error) {
   var err = new Error(error.message);
   err.stack = error.stack;
   return err;
+};
+
+u.swap = function swap(b, a, key) {
+  var tmp = a[key];
+  a[key] = b;
+  return tmp;
 };
 
 })();

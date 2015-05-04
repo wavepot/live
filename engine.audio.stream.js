@@ -3,6 +3,7 @@
 // dependencies
 
 var app = self.app;
+var cfg = app.config;
 var engine = app.engine;
 var audio = engine.audio;
 var stream = audio.stream;
@@ -19,8 +20,8 @@ stream.isBuffering = false;
 
 stream.init = function init() {
   stream.loopBuffer = [
-    new u.LoopBuffer(audio.barLength, audio.maxLoopBars),
-    new u.LoopBuffer(audio.barLength, audio.maxLoopBars)
+    new u.LoopBuffer(cfg.loopLength, cfg.bufferSize, audio.numBuffersPerSecond),
+    new u.LoopBuffer(cfg.loopLength, cfg.bufferSize, audio.numBuffersPerSecond)
   ];
 };
 
@@ -34,15 +35,15 @@ stream.eval = function eval(code) {
 };
 
 stream.write = function write(buffer) {
-  stream.loopBuffer[0].write(new Float32Array(buffer[0]));
-  stream.loopBuffer[1].write(new Float32Array(buffer[1]));
+  stream.loopBuffer[0].write(buffer[0]);
+  stream.loopBuffer[1].write(buffer[1]);
 };
 
-stream.read = function read(bytes) {
+stream.read = function read() {
   stream.bufferAhead();
-  stream.buffer[0] = stream.loopBuffer[0].read(bytes);
-  if (!stream.buffer[0]) return null;
-  stream.buffer[1] = stream.loopBuffer[1].read(bytes);
+  stream.buffer[0] = stream.loopBuffer[0].read();
+  stream.buffer[1] = stream.loopBuffer[1].read();
+  if (!stream.buffer[0] || !stream.buffer[1]) return null;
   return stream.buffer;
 };
 
@@ -51,7 +52,7 @@ stream.reset = function reset() {
     cmd: 'set',
     param: {
       frame: 0,
-      bufferSize: audio.barLength,
+      bufferSize: cfg.bufferSize,
       sampleRate: audio.sampleRate,
     }
   });
@@ -62,10 +63,18 @@ stream.bufferAhead = function bufferAhead() {
   if (stream.hasError) return;
   if (stream.isBuffering) return;
   if (stream.loopBuffer[0].ahead > 1) return;
+
   stream.isBuffering = true;
+
+  var buffers = [
+    stream.loopBuffer[0].acquire(),
+    stream.loopBuffer[1].acquire()
+  ];
+
   worker.postMessage({
-    cmd: 'bufferAhead'
-  });
+    cmd: 'bufferAhead',
+    param: buffers
+  }, buffers[0].concat(buffers[1]));
 };
 
 // events
@@ -79,13 +88,17 @@ stream.onerror = function onerror(e) {
   console.error(e);
 };
 
+stream.onbuffers = function onbuffers(buffers) {
+  stream.write(buffers);
+  stream.bufferAhead();
+};
+
 worker.onmessage = function onmessage(ev) {
   stream.isBuffering = false;
-  stream.bufferAhead();
   if (ev.data.error) {
     stream.onerror(u.errorFrom(ev.data.error));
   } else {
-    stream.write(ev.data);
+    stream.onbuffers(ev.data);
   }
 };
 

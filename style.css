@@ -12,6 +12,7 @@ html, body {
   color: #f1f1f1;
   font-family: Consolas, monospace;
   font-size: 10pt;
+  overflow: hidden;
 }
 
 textarea {
@@ -36,7 +37,7 @@ pre#debug {
   top: 0;
   right: 0;
   width: 250px;
-  margin: 0 20px;
+  margin: 0 30px;
   padding: 15px;
   font-family: Consolas, monospace;
   font-size: 10pt;
