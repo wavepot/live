@@ -75,7 +75,7 @@ worker.bufferAhead = (function() {
       err = fill(floats);
       if (err) {
         worker.fn = fn = null;
-        worker.onerror(e);
+        worker.onerror(err);
         return;
       }
 

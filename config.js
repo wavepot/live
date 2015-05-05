@@ -7,7 +7,7 @@ var cfg = app.config;
 
 // properties
 
-cfg.bufferSize = 2048;
+cfg.bufferSize = 4096;
 cfg.loopLength = 4;
 
 })();
