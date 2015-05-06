@@ -33,6 +33,18 @@ worker.eval = function eval(code) {
   }
 };
 
+worker.rpc = function rpc(remote) {
+  worker[remote.fn](remote.payload, callback);
+
+  function callback(error, payload, transferables) {
+    worker.postMessage({
+      id: remote.id,
+      error: error && { message: error.message, stack: error.stack },
+      payload: payload,
+    }, transferables);
+  }
+};
+
 worker.bufferAhead = (function() {
 
   // private
@@ -50,16 +62,13 @@ worker.bufferAhead = (function() {
 
   // export
 
-  return function bufferAhead(buffers) {
+  return function bufferAhead(buffers, cb) {
     if (worker.fn) {
       fn = worker.fn;
       worker.fn = null;
     }
 
-    if (!fn) {
-      worker.onerror(new Error('no dsp function to process'));
-      return;
-    }
+    if (!fn) return cb(new Error('no dsp function to process'));
 
     bufferSize = worker.bufferSize;
     sampleRate = worker.sampleRate;
@@ -76,7 +85,7 @@ worker.bufferAhead = (function() {
       if (err) {
         worker.fn = fn = null;
         worker.onerror(err);
-        return;
+        return cb(err);
       }
 
       buffers[0][x] = floats[0].buffer;
@@ -88,10 +97,7 @@ worker.bufferAhead = (function() {
     worker.frame = frame;
     worker.sample = sample;
 
-    worker.postMessage(
-      buffers,
-      buffers[0].concat(buffers[1])
-    );
+    cb(null, buffers, buffers[0].concat(buffers[1]))
 
     buffers = null;
   };

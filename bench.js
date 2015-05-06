@@ -12,26 +12,29 @@ bench.cases = {};
 // main
 
 function bench(label, count, fn, done) {
-  var c = count;
-
   bench.time(label);
-
-  fn(next);
-
-  function next() {
-    if (--c) fn(next);
-    else {
-      bench.timeEnd(label, count);
-      bench.measureAll();
-      if (done) done();
-    }
-  }
+  bench.repeat(count, fn, function() {
+    bench.timeEnd(label, count);
+    bench.measureAll();
+    if (done) done();
+  });
 }
 
 // methods
 
 bench.print = function print(msg) {
   bench.el.textContent += msg;
+};
+
+bench.repeat = function repeat(count, fn, done) {
+  var i = 0;
+
+  next();
+
+  function next() {
+    if (count--) fn(next, i++);
+    else done();
+  }
 };
 
 bench.measure = function measure(label) {

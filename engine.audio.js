@@ -16,8 +16,8 @@ audio.silenceBuffer = new Float32Array(cfg.bufferSize);
 
 // methods
 
-audio.init = function init() {
-  audio.context = new AudioContext;
+audio.init = function init(context) {
+  audio.context = context || new AudioContext;
   audio.numBuffersPerSecond = Math.round(audio.context.sampleRate / cfg.bufferSize);
   audio.sampleRate = audio.numBuffersPerSecond * cfg.bufferSize;
   audio.node = audio.context.createScriptProcessor(cfg.bufferSize, 2, 2);
@@ -26,8 +26,14 @@ audio.init = function init() {
   stream.init();
 };
 
+audio.destroy = function destroy() {
+  audio.node.disconnect();
+  audio.ondestroy();
+};
+
 audio.eval = function eval(code) {
   stream.eval(code);
+  audio.oneval();
 };
 
 audio.start = function start() {
@@ -63,11 +69,13 @@ audio.restart = function restart() {
 
 // events
 
+audio.oneval = u.noop;
 audio.onstart = u.noop;
 audio.onrestart = u.noop;
 audio.onplay = u.noop;
 audio.onstop = u.noop;
 audio.onpause = u.noop;
+audio.ondestroy = u.noop;
 
 audio.onaudioprocess = u.push(u.pull('outputBuffer'), function onaudioprocess(out) {
   if (!audio.isPlaying) {

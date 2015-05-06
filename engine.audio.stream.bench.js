@@ -10,32 +10,51 @@ var audio = engine.audio;
 var stream = audio.stream;
 var u = app.util;
 
-//
+// bench
 
-setTimeout(init, 0);
+setTimeout(next, 0, 128);
 
 var code = 'exports.dsp = function(t) { return Math.random() * 2 - 1; };';
 
-function init() {
-  stream.read = bench.wrap('read', stream.read);
-  stream.write = bench.wrap('write', stream.write);
-  stream.onbuffers = bench.outwrap('onbuffers', stream.onbuffers);
+var count = 1000;
+var context = new AudioContext;
+var streamBuffer;
+var outputBuffer;
+
+function next(bufferSize) {
+  bufferSize *= 2;
+  if (bufferSize > 16384) return bench.measureAll();
+
+  cfg.bufferSize = bufferSize;
+
+  outputBuffer = [
+    new Float32Array(bufferSize),
+    new Float32Array(bufferSize)
+  ];
+
   audio.onaudioprocess = u.noop;
-  audio.init();
+  audio.init(context);
   audio.onstart = function() {
     stream.reset();
     stream.eval(code);
-    bench('all', 1000, run, audio.stop);
+    bench.time(bufferSize);
+    bench.repeat(count, runner, function() {
+      bench.timeEnd(bufferSize, count);
+      audio.destroy();
+      next(bufferSize);
+    });
   };
   audio.start();
 }
 
-var res;
-
-function run(next) {
-  stream.read();
-  setTimeout(next, 10); //cfg.bufferSize / audio.context.sampleRate * 1000);
+function runner(next) {
+  stream.sendBuffers(function(err, buffers) {
+    stream.write(buffers);
+    streamBuffer = stream.read();
+    outputBuffer[0].set(streamBuffer[0], 0);
+    outputBuffer[1].set(streamBuffer[1], 0);
+    next();
+  });
 }
-
 
 })();

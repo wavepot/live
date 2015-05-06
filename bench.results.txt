@@ -1,0 +1,90 @@
+
+firefox
+=======
+
+256
+---
+count: 1000
+total: 13.114s
+each: 13.114ms
+
+512
+---
+count: 1000
+total: 11.139s
+each: 11.139ms
+
+1024
+----
+count: 1000
+total: 9.832s
+each: 9.832ms
+
+2048
+----
+count: 1000
+total: 9.984s
+each: 9.984ms
+
+4096
+----
+count: 1000
+total: 9.689s
+each: 9.689ms
+
+8192
+----
+count: 1000
+total: 8.553s
+each: 8.553ms
+
+16384
+-----
+count: 1000
+total: 10.063s
+each: 10.063ms
+
+chrome
+======
+
+256
+---
+count: 1000
+total: 19.745s
+each: 19.745ms
+
+512
+---
+count: 1000
+total: 17.840s
+each: 17.840ms
+
+1024
+----
+count: 1000
+total: 22.090s
+each: 22.090ms
+
+2048
+----
+count: 1000
+total: 15.535s
+each: 15.535ms
+
+4096
+----
+count: 1000
+total: 15.260s
+each: 15.260ms
+
+8192
+----
+count: 1000
+total: 14.885s
+each: 14.885ms
+
+16384
+-----
+count: 1000
+total: 17.174s
+each: 17.174ms
