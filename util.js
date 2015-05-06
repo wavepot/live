@@ -46,8 +46,26 @@ u.toFloat32Array = function toFloat32Array(bufferSize) {
   };
 };
 
-u.stereo = function stereo(sample) {
-  return Array.isArray(sample);
+u.isMonophonic = function isMonophonic(sample) {
+  return !Array.isArray(sample);
+};
+
+u.isNumber = function isNumber(sample) {
+  if (isNaN(sample)) return new Error('sample is NaN');
+  else if (Math.abs(sample) === Infinity) return new Error('sample is Infinity');
+};
+
+u.toStereo = function toStereo(fn) {
+  var sample = [0, 0];
+  return function(t, frame) {
+    sample[0] =
+    sample[1] = fn(t, frame);
+    return sample;
+  };
+};
+
+u.stereoOr = function stereoOr(sample, fn) {
+  return fn(sample[0]) || fn(sample[1]);
 };
 
 // http://stackoverflow.com/a/28483558
