@@ -12,18 +12,18 @@ var u = app.util;
 
 // bench
 
-setTimeout(next, 0, 64);
+setTimeout(next, 0, 512);
 
 var code = 'exports.dsp = function(t) { return Math.random() * 2 - 1; };';
 
-var count = 300;
+var count = 1000;
 var context = new AudioContext;
 var streamBuffer;
 var outputBuffer;
 
 function next(bufferSize) {
   bufferSize *= 2;
-  if (bufferSize > cfg.audioBufferSize) return bench.measureAll();
+  if (bufferSize > 1024) return bench.measureAll();
 
   cfg.streamBufferSize = bufferSize;
   audio.bufferSizeQuotient = cfg.audioBufferSize / cfg.streamBufferSize;
