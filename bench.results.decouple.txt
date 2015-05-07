@@ -1,0 +1,164 @@
+
+1024
+----
+count: 300
+total: 2.530s
+each: 8.433ms
+
+    128
+    ---
+    count: 300
+    total: 4.337s
+    each: 14.457ms
+
+    256
+    ---
+    count: 300
+    total: 3.951s
+    each: 13.170ms
+
+    512
+    ---
+    count: 300
+    total: 3.221s
+    each: 10.737ms
+
+    1024
+    ----
+    count: 300
+    total: 2.958s
+    each: 9.860ms
+
+
+
+2048
+----
+count: 300
+total: 2.886s
+each: 9.620ms
+
+    128
+    ---
+    count: 300
+    total: 4.410s
+    each: 14.700ms
+
+    256
+    ---
+    count: 300
+    total: 3.700s
+    each: 12.333ms
+
+    512
+    ---
+    count: 300
+    total: 3.383s
+    each: 11.277ms
+
+    1024
+    ----
+    count: 300
+    total: 2.860s
+    each: 9.533ms
+
+    2048
+    ----
+    count: 300
+    total: 2.872s
+    each: 9.573ms
+
+
+
+
+4096
+----
+count: 300
+total: 2.821s
+each: 9.403ms
+
+    128
+    ---
+    count: 300
+    total: 4.363s
+    each: 14.543ms
+
+    256
+    ---
+    count: 300
+    total: 3.901s
+    each: 13.003ms
+
+    512
+    ---
+    count: 300
+    total: 3.481s
+    each: 11.603ms
+
+    1024
+    ----
+    count: 300
+    total: 2.875s
+    each: 9.583ms
+
+    2048
+    ----
+    count: 300
+    total: 2.943s
+    each: 9.810ms
+
+    4096
+    ----
+    count: 300
+    total: 3.004s
+    each: 10.013ms
+
+
+
+8192
+----
+count: 300
+total: 2.773s
+each: 9.243ms
+
+    128
+    ---
+    count: 300
+    total: 4.358s
+    each: 14.527ms
+
+    256
+    ---
+    count: 300
+    total: 3.907s
+    each: 13.023ms
+
+    512
+    ---
+    count: 300
+    total: 3.493s
+    each: 11.643ms
+
+    1024
+    ----
+    count: 300
+    total: 2.896s
+    each: 9.653ms
+
+    2048
+    ----
+    count: 300
+    total: 2.953s
+    each: 9.843ms
+
+    4096
+    ----
+    count: 300
+    total: 2.958s
+    each: 9.860ms
+
+    8192
+    ----
+    count: 300
+    total: 2.620s
+    each: 8.733ms
+

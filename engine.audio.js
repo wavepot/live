@@ -12,15 +12,16 @@ var u = app.util;
 // properties
 
 audio.isPlaying = false;
-audio.silenceBuffer = new Float32Array(cfg.bufferSize);
+audio.silenceBuffer = new Float32Array(cfg.audioBufferSize);
+audio.bufferSizeQuotient = cfg.audioBufferSize / cfg.streamBufferSize;
 
 // methods
 
 audio.init = function init(context) {
   audio.context = context || new AudioContext;
-  audio.numBuffersPerSecond = Math.round(audio.context.sampleRate / cfg.bufferSize);
-  audio.sampleRate = audio.numBuffersPerSecond * cfg.bufferSize;
-  audio.node = audio.context.createScriptProcessor(cfg.bufferSize, 2, 2);
+  audio.numBuffersPerSecond = Math.round(audio.context.sampleRate / cfg.streamBufferSize);
+  audio.sampleRate = audio.numBuffersPerSecond * cfg.streamBufferSize;
+  audio.node = audio.context.createScriptProcessor(cfg.audioBufferSize, 2, 2);
   audio.node.onaudioprocess = audio.onaudioprocess;
   audio.node.connect(audio.context.destination);
   stream.init();
@@ -90,11 +91,15 @@ audio.onaudioprocess = u.push(u.pull('outputBuffer'), function onaudioprocess(ou
     return;
   }
 
-  audio.buffer = stream.read();
-  if (!audio.buffer) return;
+  var L = out.getChannelData(0);
+  var R = out.getChannelData(1);
 
-  out.getChannelData(0).set(audio.buffer[0], 0);
-  out.getChannelData(1).set(audio.buffer[1], 0);
+  for (var i = 0; i < audio.bufferSizeQuotient; i++) {
+    audio.buffer = stream.read();
+    if (!audio.buffer) return;
+    L.set(audio.buffer[0], i * cfg.streamBufferSize);
+    R.set(audio.buffer[1], i * cfg.streamBufferSize);
+  }
 });
 
 })();

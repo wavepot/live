@@ -21,8 +21,8 @@ stream.isBuffering = false;
 
 stream.init = function init() {
   stream.loopBuffer = [
-    new u.LoopBuffer(cfg.loopLength, cfg.bufferSize, audio.numBuffersPerSecond),
-    new u.LoopBuffer(cfg.loopLength, cfg.bufferSize, audio.numBuffersPerSecond)
+    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerSecond),
+    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerSecond)
   ];
 };
 
@@ -57,7 +57,7 @@ stream.reset = function reset() {
     cmd: 'set',
     param: {
       frame: 0,
-      bufferSize: cfg.bufferSize,
+      bufferSize: cfg.streamBufferSize,
       sampleRate: audio.sampleRate,
     }
   });
