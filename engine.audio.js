@@ -78,28 +78,33 @@ audio.onstop = u.noop;
 audio.onpause = u.noop;
 audio.ondestroy = u.noop;
 
-audio.onaudioprocess = u.push(u.pull('outputBuffer'), function onaudioprocess(out) {
-  if (!audio.isPlaying) {
-    /*
-    // these only work in firefox atm, but keep them for reference
-    // theoritically they should perform better
-    out.copyToChannel(audio.silenceBuffer, 0);
-    out.copyToChannel(audio.silenceBuffer, 1);
-    */
-    out.getChannelData(0).set(audio.silenceBuffer, 0);
-    out.getChannelData(1).set(audio.silenceBuffer, 0);
-    return;
-  }
+audio.onaudioprocess = (function() {
+  var L, R;
+  var i;
 
-  var L = out.getChannelData(0);
-  var R = out.getChannelData(1);
+  return function onaudioprocess(ev) {
+    L = ev.outputBuffer.getChannelData(0);
+    R = ev.outputBuffer.getChannelData(1);
 
-  for (var i = 0; i < audio.bufferSizeQuotient; i++) {
-    audio.buffer = stream.read();
-    if (!audio.buffer) return;
-    L.set(audio.buffer[0], i * cfg.streamBufferSize);
-    R.set(audio.buffer[1], i * cfg.streamBufferSize);
-  }
-});
+    if (!audio.isPlaying) {
+      /*
+      // these only work in firefox atm, but keep them for reference
+      // theoritically they should perform better
+      out.copyToChannel(audio.silenceBuffer, 0);
+      out.copyToChannel(audio.silenceBuffer, 1);
+      */
+      L.set(audio.silenceBuffer, 0);
+      R.set(audio.silenceBuffer, 0);
+      return;
+    }
+
+    for (i = 0; i < audio.bufferSizeQuotient; i++) {
+      audio.buffer = stream.read();
+      if (!audio.buffer) return;
+      L.set(audio.buffer[0], i * cfg.streamBufferSize);
+      R.set(audio.buffer[1], i * cfg.streamBufferSize);
+    }
+  };
+})();
 
 })();
