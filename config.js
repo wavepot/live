@@ -7,7 +7,7 @@ var cfg = app.config;
 
 // properties
 
-cfg.audioBufferSize = 8192;
+cfg.audioBufferSize = 4096;
 cfg.streamBufferSize = 1024;
 cfg.loopLength = 4;
 
