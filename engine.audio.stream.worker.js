@@ -19,7 +19,7 @@ worker.set = function set(obj) {
   for (var key in obj) worker[key] = obj[key];
 };
 
-worker.eval = function eval(code) {
+worker.eval = function eval(code, cb) {
   try {
     new Function(['exports', 'module'], code)(worker.module.exports, worker.module);
     worker.fn = worker.module.exports.dsp;
@@ -30,9 +30,10 @@ worker.eval = function eval(code) {
     }
     var err = u.stereoOr(worker.sample, u.isNumber);
     if (err) throw err;
+    cb(null, { bpm: worker.module.exports.bpm });
   } catch(e) {
     worker.fn = null;
-    return worker.onerror(e);
+    return cb(e);
   }
 };
 
@@ -52,6 +53,8 @@ worker.bufferAhead = (function() {
 
   // private
 
+  var buffers;
+  var timeMultiplier;
   var bufferSize;
   var sampleRate;
   var floats;
@@ -65,7 +68,7 @@ worker.bufferAhead = (function() {
 
   // export
 
-  return function bufferAhead(buffers, cb) {
+  return function bufferAhead(payload, cb) {
     if (worker.fn) {
       fn = worker.fn;
       worker.fn = null;
@@ -73,6 +76,9 @@ worker.bufferAhead = (function() {
 
     if (!fn) return cb(new Error('no dsp function to process'));
 
+    buffers = payload.buffers;
+    worker.bpm = payload.bpm;
+    timeMultiplier = worker.timeMultiplier = payload.timeMultiplier;
     bufferSize = worker.bufferSize;
     sampleRate = worker.sampleRate;
     sample = worker.sample;
@@ -107,7 +113,7 @@ worker.bufferAhead = (function() {
 
   function fill(floats) {
     for (i = 0; i < bufferSize; i++, frame++) {
-      t = frame / sampleRate;
+      t = frame / sampleRate * timeMultiplier;
       sample = fn(t, frame);
       err = u.stereoOr(sample, u.isNumber);
       if (err) return err;

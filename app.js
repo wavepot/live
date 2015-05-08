@@ -20,7 +20,7 @@ app.init = function init() {
   engine.init();
   editor.init();
   debug.watch(app.engine.audio, 'sampleRate');
-  debug.watch(app.engine.audio, 'numBuffersPerSecond');
+  debug.watch(app.engine.audio, 'numBuffersPerBeat');
   debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'length');
   debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'index');
   debug.watch(app.engine.audio.stream, 'loopBuffer', 0, 'ahead');

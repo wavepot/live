@@ -19,12 +19,33 @@ audio.bufferSizeQuotient = cfg.audioBufferSize / cfg.streamBufferSize;
 
 audio.init = function init(context) {
   audio.context = context || new AudioContext;
+
   audio.numBuffersPerSecond = Math.round(audio.context.sampleRate / cfg.streamBufferSize);
   audio.sampleRate = audio.numBuffersPerSecond * cfg.streamBufferSize;
+
+  audio.setBpm(60);
+
   audio.node = audio.context.createScriptProcessor(cfg.audioBufferSize, 2, 2);
   audio.node.onaudioprocess = audio.onaudioprocess;
   audio.node.connect(audio.context.destination);
+
   stream.init();
+};
+
+audio.setBpm = function setBpm(bpm) {
+  audio.bpm =
+    Math.floor(
+      Math.round(
+        Math.round(audio.sampleRate * 60 / bpm / cfg.streamBufferSize)
+        * cfg.streamBufferSize * bpm / 60
+      ) / audio.sampleRate * bpm
+    );
+  audio.numBuffersPerBeat = Math.round(audio.sampleRate * 60 / audio.bpm / cfg.streamBufferSize);
+  audio.timeMultiplier = audio.bpm / 60;
+  if (stream.loopBuffer) {
+    stream.loopBuffer[0].numBuffersPerBeat = audio.numBuffersPerBeat;
+    stream.loopBuffer[1].numBuffersPerBeat = audio.numBuffersPerBeat;
+  }
 };
 
 audio.destroy = function destroy() {

@@ -21,8 +21,8 @@ stream.isBuffering = false;
 
 stream.init = function init() {
   stream.loopBuffer = [
-    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerSecond),
-    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerSecond)
+    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerBeat),
+    new u.LoopBuffer(cfg.loopLength, cfg.streamBufferSize, audio.numBuffersPerBeat)
   ];
 };
 
@@ -33,9 +33,19 @@ stream.start = function start() {
 
 stream.eval = function eval(code) {
   stream.hasError = false;
+
+  stream.callbacks[++stream.callbacks.id] = function(err, payload) {
+    if (err) return stream.onerror(err);
+    if (payload.bpm) audio.setBpm(payload.bpm);
+  };
+
   worker.postMessage({
-    cmd: 'eval',
-    param: code
+    cmd: 'rpc',
+    param: {
+      fn: 'eval',
+      id: stream.callbacks.id,
+      payload: code
+    }
   });
 };
 
@@ -93,7 +103,11 @@ stream.sendBuffers = function sendBuffers(fn) {
     param: {
       fn: 'bufferAhead',
       id: stream.callbacks.id,
-      payload: buffers
+      payload: {
+        bpm: audio.bpm,
+        timeMultiplier: audio.timeMultiplier,
+        buffers: buffers
+      }
     }
   }, buffers[0].concat(buffers[1]));
 };
@@ -121,9 +135,8 @@ stream.onbuffers = function onbuffers(buffers) {
 };
 
 stream.oncallback = function oncallback(callback) {
-  var id = stream.callbacks.id;
-  stream.callbacks[id](callback.error, callback.payload);
-  delete stream.callbacks[id];
+  stream.callbacks[callback.id](callback.error, callback.payload);
+  delete stream.callbacks[callback.id];
 };
 
 worker.onmessage = function onmessage(ev) {
