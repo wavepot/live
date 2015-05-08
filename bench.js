@@ -68,7 +68,7 @@ bench.awards = function awards() {
   ]);
 };
 
-bench.measureAll = function() {
+bench.measureAll = function measureAll() {
   for (var label in bench.cases) {
     bench.measure(label);
   }

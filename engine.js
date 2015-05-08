@@ -10,7 +10,7 @@ var u = app.util;
 
 // methods
 
-engine.init = function() {
+engine.init = function init() {
   audio.init();
   audio.start();
   editor.onchange = engine.audio.eval;
