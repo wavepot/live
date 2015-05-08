@@ -8,7 +8,7 @@ var project = self.project = {};
 
 project.name = 'wavepot/live';
 project.source = 'https://github.com/wavepot/live';
-project.version = '0.0.2';
+project.version = '0.1.0';
 project.license = 'MIT';
 
 })();
