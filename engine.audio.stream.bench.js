@@ -12,24 +12,45 @@ var u = app.util;
 
 // bench
 
-setTimeout(next, 0, 128);
+setTimeout(next, 0);
 
 var code = 'exports.dsp = function(t) { return Math.random() * 2 - 1; };';
 
-var count = 1000;
+var count = 100;
 var context = new AudioContext;
 var streamBuffer;
 var outputBuffer;
 
-function next(bufferSize) {
-  bufferSize *= 2;
-  if (bufferSize > 16384) return bench.measureAll();
+var audioBufferSizeMin = 1024;
+var audioBufferSizeMax = 8192;
+var streamBufferSizeMin = 512;
+var streamBufferSizeMax = 1024;
 
-  cfg.bufferSize = bufferSize;
+var audioBufferSize = Math.max(audioBufferSizeMin, streamBufferSizeMin);
+
+function next(streamBufferSize) {
+  if (!streamBufferSize) {
+    streamBufferSize = streamBufferSizeMin;
+  } else {
+    streamBufferSize *= 2;
+  }
+
+  if (streamBufferSize > audioBufferSize || streamBufferSize > streamBufferSizeMax) {
+    audioBufferSize *= 2;
+    streamBufferSize = streamBufferSizeMin;
+    if (audioBufferSize > audioBufferSizeMax) return bench.measureAll();
+  }
+
+  cfg.audioBufferSize = audioBufferSize;
+  cfg.streamBufferSize = streamBufferSize;
+  audio.bufferSizeQuotient = cfg.audioBufferSize / cfg.streamBufferSize;
+
+  var caseKey = audioBufferSize + '/' + streamBufferSize;
+  console.log(caseKey);
 
   outputBuffer = [
-    new Float32Array(bufferSize),
-    new Float32Array(bufferSize)
+    new Float32Array(cfg.audioBufferSize),
+    new Float32Array(cfg.audioBufferSize)
   ];
 
   audio.onaudioprocess = u.noop;
@@ -37,11 +58,11 @@ function next(bufferSize) {
   audio.onstart = function() {
     stream.reset();
     stream.eval(code);
-    bench.time(bufferSize);
+    bench.time(caseKey);
     bench.repeat(count, runner, function() {
-      bench.timeEnd(bufferSize, count);
+      bench.timeEnd(caseKey, count);
       audio.destroy();
-      next(bufferSize);
+      next(streamBufferSize);
     });
   };
   audio.start();
@@ -50,9 +71,11 @@ function next(bufferSize) {
 function runner(next) {
   stream.sendBuffers(function(err, buffers) {
     stream.write(buffers);
-    streamBuffer = stream.read();
-    outputBuffer[0].set(streamBuffer[0], 0);
-    outputBuffer[1].set(streamBuffer[1], 0);
+    for (var i = 0; i < audio.bufferSizeQuotient; i++) {
+      streamBuffer = stream.read();
+      outputBuffer[0].set(streamBuffer[0], i * cfg.streamBufferSize);
+      outputBuffer[1].set(streamBuffer[1], i * cfg.streamBufferSize);
+    }
     next();
   });
 }

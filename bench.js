@@ -23,6 +23,9 @@ function bench(label, count, fn, done) {
 // methods
 
 bench.print = function print(msg) {
+  if (Array.isArray(msg)) {
+    return print(msg.join('\n') + '\n\n');
+  }
   bench.el.textContent += msg;
 };
 
@@ -44,15 +47,32 @@ bench.measure = function measure(label) {
     label,
     Array(label.length + 1).join('-'),
     'count: ' + c.count,
-    'total: ' + toSeconds(c.total),
     'each: ' + each.toFixed(3) + 'ms',
-  ].join('\n') + '\n' + '\n');
+    'total: ' + toSeconds(c.total),
+  ]);
+};
+
+bench.awards = function awards() {
+  var best = { total: Infinity };
+  var worst = { total: -Infinity };
+
+  for (var label in bench.cases) {
+    var c = bench.cases[label];
+    if (c.total < best.total) best = c;
+    if (c.total > worst.total) worst = c;
+  }
+
+  bench.print([
+    '~  best : ' + best.label + ' ~',
+    '~ worst : ' + worst.label + ' ~',
+  ]);
 };
 
 bench.measureAll = function() {
   for (var label in bench.cases) {
     bench.measure(label);
   }
+  bench.awards();
 };
 
 bench.time = function time(label) {
